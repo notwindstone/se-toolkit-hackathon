@@ -1,15 +1,21 @@
 import { Database } from "bun:sqlite";
 import path from "path";
 
-const DB_PATH = path.join(process.cwd(), process.env.DATABASE_PATH ?? "chesed.db");
+import log from "@/utils/log";
+
+const DB_PATH = path.join(
+  process.cwd(),
+  process.env.DATABASE_PATH ?? "chesed.db",
+);
 
 export const db: Database = new Database(DB_PATH);
 
-// Enable WAL mode for better concurrent read performance
-db.exec("PRAGMA journal_mode = WAL;");
-db.exec("PRAGMA foreign_keys = ON;");
+export function initDatabase(): void {
+  log.debug("Initializing database with WAL mode and foreign keys");
 
-export function initDatabase() {
+  db.exec("PRAGMA journal_mode = WAL;");
+  db.exec("PRAGMA foreign_keys = ON;");
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS targets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +41,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_health_checks_target
       ON health_checks(target_id, checked_at DESC);
   `);
+
+  log.debug("Database tables initialized successfully");
 }
 
-// Run immediately so tables exist before repo modules prepare statements
 initDatabase();

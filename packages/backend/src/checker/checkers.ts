@@ -1,33 +1,38 @@
-import type { Target } from "../db/targets";
 import pg from "pg";
 
+import type { Target } from "@/db/targets";
+
 export interface CheckResult {
-  status: "up" | "down";
-  response_time_ms: number;
-  error: string | null;
+  "status": "up" | "down";
+  "response_time_ms": number;
+  "error": string | null;
 }
 
 export async function checkHttp(target: Target): Promise<CheckResult> {
   const start = Date.now();
+
   try {
     const response = await fetch(target.url, {
-      method: "GET",
-      redirect: "follow",
-      signal: AbortSignal.timeout(10_000), // 10s timeout
+      "method"  : "GET",
+      "redirect": "follow",
+      "signal"  : AbortSignal.timeout(10_000),
     });
+
     const elapsed = Date.now() - start;
     const ok = response.status >= 200 && response.status < 400;
+
     return {
-      status: ok ? "up" : "down",
-      response_time_ms: elapsed,
-      error: ok ? null : `HTTP ${response.status}`,
+      "status"         : ok ? "up" : "down",
+      "response_time_ms": elapsed,
+      "error"          : ok ? null : `HTTP ${response.status}`,
     };
   } catch (err) {
     const elapsed = Date.now() - start;
+
     return {
-      status: "down",
-      response_time_ms: elapsed,
-      error: err instanceof Error ? err.message : String(err),
+      "status"         : "down",
+      "response_time_ms": elapsed,
+      "error"          : err instanceof Error ? err.message : String(err),
     };
   }
 }
@@ -35,26 +40,29 @@ export async function checkHttp(target: Target): Promise<CheckResult> {
 export async function checkPostgres(target: Target): Promise<CheckResult> {
   const start = Date.now();
   const client = new pg.Client({
-    host: target.url,
-    port: target.port ?? 5432,
-    connectionTimeoutMillis: 10_000,
+    "host"                  : target.url,
+    "port"                  : target.port ?? 5432,
+    "connectionTimeoutMillis": 10_000,
   });
 
   try {
     await client.connect();
     await client.query("SELECT 1");
+
     const elapsed = Date.now() - start;
+
     return {
-      status: "up",
-      response_time_ms: elapsed,
-      error: null,
+      "status"         : "up",
+      "response_time_ms": elapsed,
+      "error"          : null,
     };
   } catch (err) {
     const elapsed = Date.now() - start;
+
     return {
-      status: "down",
-      response_time_ms: elapsed,
-      error: err instanceof Error ? err.message : String(err),
+      "status"         : "down",
+      "response_time_ms": elapsed,
+      "error"          : err instanceof Error ? err.message : String(err),
     };
   } finally {
     await client.end().catch(() => {});
@@ -63,15 +71,18 @@ export async function checkPostgres(target: Target): Promise<CheckResult> {
 
 export async function runCheck(target: Target): Promise<CheckResult> {
   switch (target.type) {
-    case "http":
+    case "http": {
       return checkHttp(target);
-    case "postgres":
+    }
+    case "postgres": {
       return checkPostgres(target);
-    default:
+    }
+    default: {
       return {
-        status: "down",
-        response_time_ms: 0,
-        error: `Unknown target type: ${target.type}`,
+        "status"         : "down",
+        "response_time_ms": 0,
+        "error"          : `Unknown target type: ${target.type}`,
       };
+    }
   }
 }
