@@ -1,19 +1,26 @@
 import { Elysia } from "elysia";
+import log from "./utils/log";
 import { $ } from "bun";
 
 // Load .env from package directory if not already set
 if (!process.env.TELEGRAM_BOT_TOKEN) {
+  log.info("Directly reading environmental variables");
+
   try {
     const envFile = await Bun.file(new URL(".env", import.meta.url)).text();
+
     for (const line of envFile.split("\n")) {
       const trimmed = line.trim();
+
       if (trimmed && !trimmed.startsWith("#")) {
         const [key, ...rest] = trimmed.split("=");
         const val = rest.join("=").replace(/^["']|["']$/g, "");
         process.env[key.trim()] = val;
       }
     }
-  } catch {}
+  } catch {
+    log.error("Error while directly reading environmental variables");
+  }
 }
 
 // db/database.ts self-initializes on import
@@ -50,7 +57,7 @@ setOnCheckCallback((target: Target, result) => {
 const app = new Elysia()
   .use(apiRoutes)
   .get("/", () => ({
-    name: "Chesed",
+    name: "Kether",
     version: "0.1.0",
     endpoints: {
       targets: "/api/targets",
@@ -59,7 +66,7 @@ const app = new Elysia()
   }))
   .listen(PORT);
 
-console.log(`🚀 Chesed API running on http://localhost:${PORT}`);
+log.info(`Kether API running on http://localhost:${PORT}`);
 
 // Start scheduler
 startScheduler();

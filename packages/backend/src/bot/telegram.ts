@@ -2,6 +2,7 @@ import { Bot, Context, session, SessionFlavor } from "grammy";
 import { targetRepo } from "../db/targets";
 import { healthCheckRepo } from "../db/healthChecks";
 import type { Target } from "../db/targets";
+import log from "../utils/log";
 
 let botInstance: Bot | null = null;
 let adminChatId: number | null = null;
@@ -17,10 +18,10 @@ function createBot(token: string) {
 
   bot.command("start", async (ctx) => {
     await ctx.reply(
-      "👋 Welcome to **Chesed** — your VDS monitoring assistant.\n\n" +
+      "Welcome to Kether - a VDS monitoring assistant.\n\n" +
       "Available commands:\n" +
-      "/status — Show all monitored targets\n" +
-      "/uptime — Show uptime statistics\n\n" +
+      "/status - Show all monitored targets\n" +
+      "/uptime - Show uptime statistics\n\n" +
       "I will also notify you automatically when something goes down.",
       { parse_mode: "Markdown" }
     );
@@ -70,20 +71,20 @@ function createBot(token: string) {
 
 export function initBot(token?: string, chatIdStr?: string) {
   if (!token || !chatIdStr) {
-    console.warn("[bot] TELEGRAM_BOT_TOKEN or ADMIN_CHAT_ID not set — bot disabled");
+    log.warn("BOT | TELEGRAM_BOT_TOKEN or ADMIN_CHAT_ID are not set; bot was disabled");
     return null;
   }
 
   adminChatId = Number(chatIdStr);
   botInstance = createBot(token);
-  console.log(`[bot] Initialized, chatting with ${adminChatId}`);
+  log.info(`BOT | Initialized, chatting with ${adminChatId}`);
   return botInstance;
 }
 
 export async function startBotInstance() {
   if (!botInstance) return;
   const info = await botInstance.api.getMe();
-  console.log(`[bot] Running as @${info.username}`);
+  log.info(`BOT | Running as @${info.username}`);
   await botInstance.start();
 }
 
@@ -98,7 +99,7 @@ export async function notifyDown(target: Target, error: string) {
   try {
     await botInstance.api.sendMessage(adminChatId, message, { parse_mode: "Markdown" });
   } catch (err) {
-    console.error("[bot] Failed to send notification:", err);
+    log.error("BOT | Failed to send notification:", err);
   }
 }
 
@@ -111,6 +112,6 @@ export async function notifyUp(target: Target) {
   try {
     await botInstance.api.sendMessage(adminChatId, message, { parse_mode: "Markdown" });
   } catch (err) {
-    console.error("[bot] Failed to send notification:", err);
+    log.error("BOT | Failed to send notification:", err);
   }
 }

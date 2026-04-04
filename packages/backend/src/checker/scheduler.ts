@@ -1,6 +1,7 @@
 import { targetRepo, type Target } from "../db/targets";
 import { healthCheckRepo } from "../db/healthChecks";
 import { runCheck } from "./checkers";
+import log from "../utils/log";
 
 type OnCheckCallback = (target: Target, result: Awaited<ReturnType<typeof runCheck>>) => void;
 
@@ -40,7 +41,7 @@ export function startScheduler() {
     scheduleTarget(target);
   }
 
-  console.log(`[scheduler] Started monitoring ${targets.length} target(s)`);
+ log.info(`Started monitoring ${targets.length} target(s)`);
 }
 
 export function stopScheduler() {
