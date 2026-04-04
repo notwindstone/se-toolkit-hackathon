@@ -1,5 +1,5 @@
 {
-  "name": "chesed",
+  "name": "yesod",
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
