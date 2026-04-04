@@ -26,6 +26,11 @@ This project will monitor the health of services via scheduled checks. It will b
 
 ## Features
 
+- A scheduled job that checks whether the server and its services are responding.
+- A Telegram bot that will notify the user in case if any service is down.
+- That Telegram bot will also be able to show simple metrics and data (e.g., uptime).
+- A web dashboard that graphically represents the data.
+
 ## Usage
 
 ## Deployment
