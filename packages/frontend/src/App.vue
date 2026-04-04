@@ -8,7 +8,7 @@ const apiBase = import.meta.env.VITE_API_BASE ?? "http://localhost:3000";
     <header class="border-b border-gray-800 px-6 py-4">
       <div class="max-w-6xl mx-auto flex items-center justify-between">
         <h1 class="text-xl font-bold tracking-tight">
-          <span class="text-blue-400">Chesed</span>
+          <span class="text-blue-400">Yesod</span>
           <span class="text-gray-500 font-normal text-sm ml-2">Monitoring Dashboard</span>
         </h1>
         <span class="text-xs text-gray-600">API: {{ apiBase }}</span>

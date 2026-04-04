@@ -24,7 +24,7 @@ function createBot(token: string): Bot {
 
   bot.command("start", async (ctx) => {
     await ctx.reply(
-      "Welcome to Kether - a VDS monitoring assistant.\n\n" +
+      "Welcome to Yesod - a VDS monitoring assistant.\n\n" +
       "Available commands:\n" +
       "/status - Show all monitored targets\n" +
       "/uptime - Show uptime statistics\n\n" +

@@ -67,7 +67,7 @@ setOnCheckCallback((target: Target, result: CheckResult) => {
 const app = new Elysia()
   .use(apiRoutes)
   .get("/", () => ({
-    "name"   : "Kether",
+    "name"   : "Yesod",
     "version": "0.1.0",
     "endpoints": {
       "targets": "/api/targets",
@@ -76,7 +76,7 @@ const app = new Elysia()
   }))
   .listen(PORT);
 
-log.info(`Kether API running on http://localhost:${PORT}`);
+log.info(`Yesod API running on http://localhost:${PORT}`);
 
 // Start scheduler
 startScheduler();
