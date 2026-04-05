@@ -9,6 +9,7 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
     "elysia": "^1.2.0",
     "grammy": "^1.34.0",
     "pg": "^8.13.0"

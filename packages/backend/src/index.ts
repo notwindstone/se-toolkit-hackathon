@@ -11,6 +11,7 @@ import {
 } from "@/bot/telegram";
 import type { Target } from "@/db/targets";
 import type { CheckResult } from "@/checker/checkers";
+import cors from "@elysiajs/cors";
 
 // Load .env from package directory if not already set
 async function loadEnvFromFile(): Promise<void> {
@@ -66,6 +67,7 @@ setOnCheckCallback((target: Target, result: CheckResult) => {
 // Build Elysia app
 const app = new Elysia()
   .use(apiRoutes)
+  .use(cors())
   .get("/", () => ({
     "name"   : "Yesod",
     "version": "0.1.0",
