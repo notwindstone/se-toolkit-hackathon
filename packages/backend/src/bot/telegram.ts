@@ -1,11 +1,23 @@
 import { Bot, type Context } from "grammy";
 
 import log from "@/utils/log";
-import { targetRepo, type Target } from "@/db/targets";
+import { targetRepo, type Target, type CreateTargetDTO } from "@/db/targets";
 import { healthCheckRepo } from "@/db/healthChecks";
+import { addTargetToScheduler, removeTargetFromScheduler } from "@/checker/scheduler";
 
 let botInstance: Bot | null = null;
 let adminChatId: number | null = null;
+
+type AddTargetStep = "name" | "type" | "url" | "port" | "interval";
+
+interface PendingTarget extends Partial<CreateTargetDTO> {
+  "step": AddTargetStep;
+}
+
+// Store pending target data for multi-step add command
+const pendingTargets = new Map<number, PendingTarget>();
+// Store target IDs pending deletion for confirmation
+const pendingDeletions = new Set<number>();
 
 function getStatus(status: string | null): string {
   if (status === "up") {
@@ -21,16 +33,149 @@ function getStatus(status: string | null): string {
 
 const timeFormat = { "hour": "2-digit", "minute": "2-digit", "second": "2-digit" } as const;
 
+function handleAddTargetMessage(ctx: Context): void {
+  const userId = ctx.from?.id;
+
+  if (!userId) {
+    return;
+  }
+
+  const pending = pendingTargets.get(userId);
+
+  if (!pending) {
+    return;
+  }
+
+  const text = ctx.msg?.text;
+
+  if (!text) {
+    return;
+  }
+
+  switch (pending.step) {
+    case "name": {
+      pending.name = text;
+      pending.step = "type";
+      pendingTargets.set(userId, pending);
+
+      ctx.reply(
+        "Now send the **type** (`http` or `postgres`):",
+        { "parse_mode": "Markdown" },
+      );
+
+      break;
+    }
+    case "type": {
+      if (text !== "http" && text !== "postgres") {
+        ctx.reply("Please send `http` or `postgres`.", { "parse_mode": "Markdown" });
+
+        break;
+      }
+
+      pending.type = text;
+      pending.step = "url";
+      pendingTargets.set(userId, pending);
+
+      ctx.reply(
+        "Now send the **URL** (e.g., `https://example.com` or `localhost` for Postgres):",
+        { "parse_mode": "Markdown" },
+      );
+
+      break;
+    }
+    case "url": {
+      pending.url = text;
+      pending.step = "port";
+      pendingTargets.set(userId, pending);
+
+      ctx.reply(
+        "Now send the **port** (or `0` if not needed):",
+        { "parse_mode": "Markdown" },
+      );
+
+      break;
+    }
+    case "port": {
+      const port = Number(text);
+
+      if (text !== "0" && isNaN(port)) {
+        ctx.reply("Please send a valid number.");
+
+        break;
+      }
+
+      pending.port = port === 0 ? undefined : port;
+      pending.step = "interval";
+      pendingTargets.set(userId, pending);
+
+      ctx.reply(
+        "Finally, send the **check interval in seconds** (e.g., `60`):",
+        { "parse_mode": "Markdown" },
+      );
+
+      break;
+    }
+    case "interval": {
+      const interval = Number(text);
+
+      if (isNaN(interval) || interval < 1) {
+        ctx.reply("Please send a valid number greater than 0.");
+
+        break;
+      }
+
+      pending.check_interval_seconds = interval;
+      pendingTargets.delete(userId);
+
+      try {
+        const target = targetRepo.create(pending as CreateTargetDTO);
+
+        addTargetToScheduler(target);
+
+        ctx.reply(
+          (
+            "✅ Target added successfully!\n" +
+            "\n" +
+            "```markdown\n" +
+            `Name       | ${target.name}\n` +
+            `Type       | ${target.type}\n` +
+            `URL        | ${target.url}\n` +
+            `Port       | ${target.port ?? "N/A"}\n` +
+            `Interval   | ${target.check_interval_seconds}s\n` +
+            "```"
+          ),
+          { "parse_mode": "Markdown" },
+        );
+      } catch (err) {
+        log.error("BOT | Failed to add target:", err);
+        ctx.reply("❌ Failed to add target. Check logs for details.");
+      }
+
+      break;
+    }
+  }
+}
+
 function createBot(token: string): Bot {
   const bot = new Bot(token);
 
   bot.command("start", async (ctx) => {
+    const userId = ctx.from?.id;
+
+    if (userId === undefined) {
+      await ctx.reply("Could not identify user.");
+
+      return;
+    }
+
     await ctx.reply(
       "Welcome to Yesod - a VDS monitoring assistant.\n" +
       "\n" +
       "Available commands:\n" +
       "/status - Show all monitored targets\n" +
       "/uptime - Show uptime statistics\n" +
+      "/addTarget - Add a new target to monitor\n" +
+      "/delTarget - Delete a target by ID\n" +
       "\n" +
       "I will also send a message automatically when something goes down.",
       { "parse_mode": "Markdown" },
@@ -41,7 +186,7 @@ function createBot(token: string): Bot {
     const targets = targetRepo.getAllIncludingDisabled();
 
     if (targets.length === 0) {
-      await ctx.reply("No targets configured yet. You can add them here (/add_target), via Dashboard, or through API.");
+      await ctx.reply("No targets configured yet. You can add them here (/addTarget), via Dashboard, or through API.");
 
       return;
     }
@@ -53,7 +198,7 @@ function createBot(token: string): Bot {
       const status = lastCheck?.status ?? null;
       const error = lastCheck?.error ? `\nError      | ${lastCheck.error}` : "";
 
-      const lastCheckTime = new Date(lastCheck.checked_at ?? "Never");
+      const lastCheckTime = new Date(lastCheck?.checked_at ?? "Never");
       const nextCheckTime = lastCheck
         ? new Date(lastCheckTime.getTime() + t.check_interval_seconds * 1000)
             .toLocaleTimeString([], timeFormat)
@@ -72,7 +217,7 @@ function createBot(token: string): Bot {
 
     await ctx.reply(
       (
-        "Service statuses:\n" + 
+        "Service statuses:\n" +
         "\n" +
         "```markdown\n" + lines.join("\n") + "\n```"
       ),
@@ -84,7 +229,7 @@ function createBot(token: string): Bot {
     const targets = targetRepo.getAllIncludingDisabled();
 
     if (targets.length === 0) {
-      await ctx.reply("No targets configured yet. You can add them here (/add_target), via Dashboard, or through API.");
+      await ctx.reply("No targets configured yet. You can add them here (/addTarget), via Dashboard, or through API.");
 
       return;
     }
@@ -123,6 +268,94 @@ function createBot(token: string): Bot {
       ),
       { "parse_mode": "Markdown" },
     );
+  });
+
+  bot.command("addTarget", async (ctx) => {
+    const userId = ctx.from?.id;
+
+    if (userId === undefined) {
+      await ctx.reply("Could not identify user.");
+
+      return;
+    }
+
+    pendingTargets.set(userId, { "step": "name" });
+
+    await ctx.reply(
+      "Let's add a new target. Please send the **name** of the target:",
+      { "parse_mode": "Markdown" },
+    );
+  });
+
+  bot.command("delTarget", async (ctx) => {
+    const userId = ctx.from?.id;
+
+    if (userId === undefined) {
+      await ctx.reply("Could not identify user.");
+
+      return;
+    }
+
+    const args = ctx.match?.trim();
+
+    if (!args) {
+      await ctx.reply(
+        "Please provide the target ID to delete. Example:\n" +
+        "```\n/delTarget 1\n```",
+        { "parse_mode": "Markdown" },
+      );
+
+      return;
+    }
+
+    const targetId = Number(args);
+
+    if (isNaN(targetId)) {
+      await ctx.reply("Please provide a valid numeric ID.");
+
+      return;
+    }
+
+    const target = targetRepo.getById(targetId);
+
+    if (!target) {
+      await ctx.reply(`❌ Target with ID ${targetId} not found.`);
+
+      return;
+    }
+
+    if (pendingDeletions.has(targetId)) {
+      pendingDeletions.delete(targetId);
+
+      targetRepo.delete(targetId);
+      removeTargetFromScheduler(targetId);
+
+      await ctx.reply(`✅ Target *${target.name}* (ID: ${targetId}) has been deleted.`, { "parse_mode": "Markdown" });
+
+      return;
+    }
+
+    pendingDeletions.add(targetId);
+
+    await ctx.reply(
+      `⚠️ Are you sure you want to delete *${target.name}* (ID: ${targetId})?\n\n` +
+      `Send /delTarget ${targetId} again to confirm.`,
+      { "parse_mode": "Markdown" },
+    );
+  });
+
+  bot.on("message:text", async (ctx) => {
+    const userId = ctx.from?.id;
+    const text = ctx.msg?.text ?? "";
+
+    // Skip command-like messages
+    if (text.startsWith("/")) {
+      return;
+    }
+
+    if (userId && pendingTargets.has(userId)) {
+      handleAddTargetMessage(ctx);
+    }
   });
 
   return bot;
