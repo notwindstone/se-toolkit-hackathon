@@ -8,33 +8,53 @@ export interface CheckResult {
   "error": string | null;
 }
 
+function hasScheme(url: string): boolean {
+  return /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(url);
+}
+
+function buildHttpCandidates(rawUrl: string): string[] {
+  const trimmed = rawUrl.trim();
+
+  if (hasScheme(trimmed)) {
+    return [trimmed];
+  }
+
+  return [`https://${trimmed}`, `http://${trimmed}`];
+}
+
 export async function checkHttp(target: Target): Promise<CheckResult> {
   const start = Date.now();
+  const candidates = buildHttpCandidates(target.url);
+  let lastError: string | null = null;
 
-  try {
-    const response = await fetch(target.url, {
-      "method"  : "GET",
-      "redirect": "follow",
-      "signal"  : AbortSignal.timeout(10_000),
-    });
+  for (const candidate of candidates) {
+    try {
+      const response = await fetch(candidate, {
+        "method"  : "GET",
+        "redirect": "follow",
+        "signal"  : AbortSignal.timeout(10_000),
+      });
 
-    const elapsed = Date.now() - start;
-    const ok = response.status >= 200 && response.status < 400;
+      const elapsed = Date.now() - start;
+      const ok = response.status >= 200 && response.status < 400;
 
-    return {
-      "status"         : ok ? "up" : "down",
-      "response_time_ms": elapsed,
-      "error"          : ok ? null : `HTTP ${response.status}`,
-    };
-  } catch (err) {
-    const elapsed = Date.now() - start;
-
-    return {
-      "status"         : "down",
-      "response_time_ms": elapsed,
-      "error"          : err instanceof Error ? err.message : String(err),
-    };
+      return {
+        "status"          : ok ? "up" : "down",
+        "response_time_ms": elapsed,
+        "error"           : ok ? null : `HTTP ${response.status}`,
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
   }
+
+  const elapsed = Date.now() - start;
+
+  return {
+    "status"         : "down",
+    "response_time_ms": elapsed,
+    "error"          : lastError ?? "Failed to fetch target URL",
+  };
 }
 
 export async function checkPostgres(target: Target): Promise<CheckResult> {
