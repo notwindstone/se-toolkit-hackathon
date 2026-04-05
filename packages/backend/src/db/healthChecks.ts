@@ -23,6 +23,10 @@ const getUptimeStmt = db.prepare(
   "SELECT ROUND(100.0 * SUM(CASE WHEN status = 'up' THEN 1 ELSE 0 END) / COUNT(*), 2) as uptime_percent FROM health_checks WHERE target_id = ?",
 ) as Statement<{ "uptime_percent": number | null }, [number]>;
 
+const getUptimeRecentStmt = db.prepare(
+  "SELECT ROUND(100.0 * SUM(CASE WHEN status = 'up' THEN 1 ELSE 0 END) / COUNT(*), 2) as uptime_percent FROM (SELECT status FROM health_checks WHERE target_id = ? ORDER BY checked_at DESC LIMIT ?)",
+) as Statement<{ "uptime_percent": number | null }, [number, number]>;
+
 const getByIdStmt = db.prepare(
   "SELECT * FROM health_checks WHERE id = ?",
 ) as Statement<HealthCheck, [number]>;
@@ -57,6 +61,11 @@ export function getUptimePercent(targetId: number): number {
   return row?.uptime_percent ?? 0;
 }
 
+export function getUptimePercentRecent(targetId: number, limit: number): number {
+  const row = getUptimeRecentStmt.get(targetId, limit);
+  return row?.uptime_percent ?? 0;
+}
+
 export function getById(id: number): HealthCheck | null {
   return getByIdStmt.get(id) ?? null;
 }
@@ -65,5 +74,6 @@ export const healthCheckRepo = {
   "log"            : logHealthCheck,
   "getRecentByTarget": getRecentByTarget,
   "getUptimePercent": getUptimePercent,
+  "getUptimePercentRecent": getUptimePercentRecent,
   "getById"        : getById,
 } as const;

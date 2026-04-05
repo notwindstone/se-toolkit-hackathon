@@ -9,11 +9,11 @@ let adminChatId: number | null = null;
 
 function getStatus(status: string | null): string {
   if (status === "up") {
-    return "🟩 Online";
+    return "🟩 Up";
   }
 
   if (status === "down") {
-    return "🟥 Offline";
+    return "🟥 Down";
   }
 
   return "⬜ Unknown";
@@ -60,6 +60,7 @@ function createBot(token: string): Bot {
         : "Scheduled";
 
       return (
+        String.raw`ID         | ${t.id}` + "\n" +
         String.raw`Name       | ${t.name}` + "\n" +
         String.raw`Status     | ${getStatus(status)}` + "\n" +
         String.raw`URL        | ${t.url} ${enabled}${error}` + "\n" +
@@ -71,7 +72,7 @@ function createBot(token: string): Bot {
 
     await ctx.reply(
       (
-        "Monitoring Status:\n" + 
+        "Service statuses:\n" + 
         "\n" +
         "```markdown\n" + lines.join("\n") + "\n```"
       ),
@@ -88,17 +89,37 @@ function createBot(token: string): Bot {
       return;
     }
 
-    const lines = targets.map((t: Target) => {
-      const uptime = healthCheckRepo.getUptimePercent(t.id);
+    const lines: Array<string> = [];
 
-      return `📈 *${t.name}*: ${uptime}%`;
-    });
+    for (const target of targets) {
+      const recentChecks = healthCheckRepo.getRecentByTarget(target.id, 10);
+
+      if (recentChecks.length === 0) {
+        lines.push("No checks yet\n");
+
+        continue;
+      }
+
+      const checkLines = recentChecks.map((check, index) => {
+        const time = new Date(check.checked_at).toLocaleTimeString([], timeFormat);
+        const statusMarker = check.status === "up" ? "🟩 Up" : "🟥 Down";
+
+        return `Check ${(index + 1).toString().padEnd(4)} | ${statusMarker} at ${time}`;
+      });
+
+      const uptime = healthCheckRepo.getUptimePercent(target.id);
+
+      lines.push(`Name       | ${target.name}`);
+      lines.push(`URL        | ${target.url}`);
+      lines.push(`Uptime     | ${uptime}%`);
+      lines.push(checkLines.join("\n") + "\n");
+    }
 
     await ctx.reply(
       (
-        "Uptime\n" +
+        "Last 10 checks per target:\n" +
         "\n" +
-        lines.join("\n")
+        "```markdown\n" + lines.join("\n") + "\n```"
       ),
       { "parse_mode": "Markdown" },
     );
