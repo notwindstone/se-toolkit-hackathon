@@ -7,28 +7,32 @@ import { healthCheckRepo } from "@/db/healthChecks";
 let botInstance: Bot | null = null;
 let adminChatId: number | null = null;
 
-function statusEmoji(status: string | null): string {
+function getStatus(status: string | null): string {
   if (status === "up") {
-    return "🟢";
+    return "🟩 Online";
   }
 
   if (status === "down") {
-    return "🔴";
+    return "🟥 Offline";
   }
 
-  return "⚪";
+  return "⬜ Unknown";
 }
+
+const timeFormat = { "hour": "2-digit", "minute": "2-digit", "second": "2-digit" } as const;
 
 function createBot(token: string): Bot {
   const bot = new Bot(token);
 
   bot.command("start", async (ctx) => {
     await ctx.reply(
-      "Welcome to Yesod - a VDS monitoring assistant.\n\n" +
+      "Welcome to Yesod - a VDS monitoring assistant.\n" +
+      "\n" +
       "Available commands:\n" +
       "/status - Show all monitored targets\n" +
-      "/uptime - Show uptime statistics\n\n" +
-      "I will also notify you automatically when something goes down.",
+      "/uptime - Show uptime statistics\n" +
+      "\n" +
+      "I will also send a message automatically when something goes down.",
       { "parse_mode": "Markdown" },
     );
   });
@@ -37,22 +41,40 @@ function createBot(token: string): Bot {
     const targets = targetRepo.getAllIncludingDisabled();
 
     if (targets.length === 0) {
-      await ctx.reply("📭 No targets configured. Add targets via the API or dashboard.");
+      await ctx.reply("No targets configured yet. You can add them here (/add_target), via Dashboard, or through API.");
 
       return;
     }
 
     const lines = targets.map((t: Target) => {
       const lastCheck = healthCheckRepo.getRecentByTarget(t.id, 1)[0] ?? null;
+      const uptime = healthCheckRepo.getUptimePercent(t.id);
       const enabled = t.enabled ? "" : " _(disabled)_";
       const status = lastCheck?.status ?? null;
-      const error = lastCheck?.error ? `\n    └ ${lastCheck.error}` : "";
+      const error = lastCheck?.error ? `\nError      | ${lastCheck.error}` : "";
 
-      return `${statusEmoji(status)} *${t.name}* (${t.type})${enabled}${error}`;
+      const lastCheckTime = new Date(lastCheck.checked_at ?? "Never");
+      const nextCheckTime = lastCheck
+        ? new Date(lastCheckTime.getTime() + t.check_interval_seconds * 1000)
+            .toLocaleTimeString([], timeFormat)
+        : "Scheduled";
+
+      return (
+        String.raw`Name       | ${t.name}` + "\n" +
+        String.raw`Status     | ${getStatus(status)}` + "\n" +
+        String.raw`URL        | ${t.url} ${enabled}${error}` + "\n" +
+        String.raw`Uptime     | ${uptime}%` + "\n" +
+        String.raw`Last Check | ${lastCheckTime.toLocaleTimeString([], timeFormat)}` + "\n" +
+        String.raw`Next Check | ${nextCheckTime} | Every ${t.check_interval_seconds} seconds` + "\n"
+      );
     });
 
     await ctx.reply(
-      "📊 **Monitoring Status**\n\n" + lines.join("\n"),
+      (
+        "Monitoring Status:\n" + 
+        "\n" +
+        "```markdown\n" + lines.join("\n") + "\n```"
+      ),
       { "parse_mode": "Markdown" },
     );
   });
@@ -61,7 +83,7 @@ function createBot(token: string): Bot {
     const targets = targetRepo.getAllIncludingDisabled();
 
     if (targets.length === 0) {
-      await ctx.reply("📭 No targets configured.");
+      await ctx.reply("No targets configured yet. You can add them here (/add_target), via Dashboard, or through API.");
 
       return;
     }
@@ -73,7 +95,11 @@ function createBot(token: string): Bot {
     });
 
     await ctx.reply(
-      "⏱ **Uptime Statistics**\n\n" + lines.join("\n"),
+      (
+        "Uptime\n" +
+        "\n" +
+        lines.join("\n")
+      ),
       { "parse_mode": "Markdown" },
     );
   });
