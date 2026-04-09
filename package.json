@@ -6,7 +6,7 @@
     "dev": "bun run --watch packages/backend/src/index.ts",
     "dev:frontend": "bun run --cwd packages/frontend dev",
     "build": "bun run --cwd packages/backend build && bun run --cwd packages/frontend build",
-    "start": "bun run --cwd packages/backend start && bun run --cwd packages/frontend preview"
+    "start": "concurrently 'bun run --cwd packages/backend start' 'bun run --cwd packages/frontend preview'"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
