@@ -73,7 +73,7 @@ Build and run
 docker compose --env-file .env.secret up --build -d
 ```
 
-Now, access these services via your telegram bot, the web dashboard (port 4173 of the host IP), or an API (port 3000 of the host IP). `http://<vm-ip>:3000`
+Now, access these services via your telegram bot, the web dashboard (port 4173 of the host IP), or an API (port 3000 of the host IP).
 
 > [!WARNING]
 > Although I briefly overviewed the code, the entire project was vibe-coded
