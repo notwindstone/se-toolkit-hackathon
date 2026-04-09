@@ -36,6 +36,9 @@ This project will monitor the health of services via scheduled checks. It will b
 
 ## Usage
 
+- Telegram bot
+- Web dashboard
+
 ## Deployment
 
 > For Ubuntu 24.04
