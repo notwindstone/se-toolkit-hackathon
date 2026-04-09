@@ -36,8 +36,8 @@ This project will monitor the health of services via scheduled checks. It will b
 
 ## Usage
 
-- Telegram bot
-- Web dashboard
+- Send a message with the command `/start` in the [Telegram Bot](https://t.me/firefox_chan_bot#)
+- Visit the [Web Dashboard](http://10.93.26.8:4173/)
 
 ## Deployment
 
