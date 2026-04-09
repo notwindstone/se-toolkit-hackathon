@@ -1,12 +1,22 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "fs";
 import path from "path";
 
 import log from "@/utils/log";
 
-const DB_PATH = path.join(
-  process.cwd(),
-  process.env.DATABASE_PATH ?? "chesed.db",
-);
+function resolveDbPath(): string {
+  const configuredPath = (process.env.DATABASE_PATH ?? "chesed.db").trim();
+
+  if (path.isAbsolute(configuredPath)) {
+    return configuredPath;
+  }
+
+  return path.join(process.cwd(), configuredPath);
+}
+
+const DB_PATH = resolveDbPath();
+
+mkdirSync(path.dirname(DB_PATH), { "recursive": true });
 
 export const db: Database = new Database(DB_PATH);
 
