@@ -6,6 +6,6 @@
     "dev": "bun run --watch packages/backend/src/index.ts",
     "dev:frontend": "bun run --cwd packages/frontend dev",
     "build": "bun run --cwd packages/backend build && bun run --cwd packages/frontend build",
-    "start": "bun run --cwd packages/backend start"
+    "start": "bun run --cwd packages/backend start && bun run --cwd packages/frontend preview"
   }
 }
