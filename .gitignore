@@ -2,5 +2,7 @@ node_modules/
 *.db
 *.log
 .env
+.env.*
+!.env.secret.example
 dist/
 coverage/
