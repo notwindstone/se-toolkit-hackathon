@@ -38,5 +38,39 @@ This project will monitor the health of services via scheduled checks. It will b
 
 ## Deployment
 
+> For Ubuntu 24.04
+
+Clone the repository
+
+```bash
+git clone https://github.com/notwindstone/se-toolkit-hackathon
+cd se-toolkit-hackathon
+```
+
+Create `.env.secret` with the contents from `.env.example`, and then fill the values:
+
+```env
+# Telegram
+TELEGRAM_BOT_TOKEN=your_token_here
+ADMIN_CHAT_ID=your_telegram_user_id_here
+
+# Qwen API
+QWEN_API_KEY=for_investigating_the_vm_problems
+
+# Server
+PORT=3000
+
+# Database
+DATABASE_PATH=./chesed.db
+```
+
+Build and run
+
+```bash
+docker compose --env-file .env.secret up --build -d
+```
+
+Now, access these services via your telegram bot, the web dashboard (port 4173 of the host IP), or an API (port 3000 of the host IP). `http://<vm-ip>:3000`
+
 > [!WARNING]
 > Although I briefly overviewed the code, the entire project was vibe-coded
