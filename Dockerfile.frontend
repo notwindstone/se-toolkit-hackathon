@@ -1,0 +1,27 @@
+FROM oven/bun:1.2-alpine AS build
+
+WORKDIR /app
+
+# Install dependencies for workspace frontend package.
+COPY package.json bun.lockb ./
+COPY packages/frontend/package.json ./packages/frontend/package.json
+RUN bun install --frozen-lockfile
+
+# Copy frontend source.
+COPY packages/frontend ./packages/frontend
+
+# Build with relative API base; nginx proxies /api to backend.
+ARG VITE_API_BASE=/
+ENV VITE_API_BASE=${VITE_API_BASE}
+
+WORKDIR /app/packages/frontend
+RUN bun run build
+
+FROM nginx:1.27-alpine
+
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/packages/frontend/dist /usr/share/nginx/html
+
+EXPOSE 4173
+
+CMD ["nginx", "-g", "daemon off;"]

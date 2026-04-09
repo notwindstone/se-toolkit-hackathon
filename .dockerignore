@@ -1,0 +1,13 @@
+.git
+.gitignore
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+*.db
+*.db-shm
+*.db-wal
+*.log
+.env
+.env.secret

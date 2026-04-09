@@ -1,0 +1,17 @@
+FROM oven/bun:1.2-alpine
+
+WORKDIR /app
+
+# Install dependencies for workspace backend package.
+COPY package.json bun.lockb ./
+COPY packages/backend/package.json ./packages/backend/package.json
+RUN bun install --frozen-lockfile
+
+# Copy backend source.
+COPY packages/backend ./packages/backend
+
+WORKDIR /app/packages/backend
+
+EXPOSE 3000
+
+CMD ["bun", "run", "start"]
