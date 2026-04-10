@@ -8,7 +8,10 @@ An AI-driven monitoring service for multiple Virtual Dedicated Servers (VDS) wit
 
 ## Demo
 
-Screenshots will be here...
+![Telegram bot, LLM investigations](./assets/llm_investigation.png)
+![Telegram bot, service statuses](./assets/telegram_status.png)
+![Telegram bot, service uptimes](./assets/telegram_uptime.png)
+![Web dashboard](./assets/web_dashboard.png)
 
 ## Product context
 
@@ -37,7 +40,11 @@ This project will monitor the health of services via scheduled checks. It will b
 ## Usage
 
 - Send a message with the command `/start` in the [Telegram Bot](https://t.me/firefox_chan_bot#)
+  - You can add targets there
 - Visit the [Web Dashboard](http://10.93.26.8:4173/)
+- For LLM investigations, add the SSH public key of the host VM to the target VM (in `authorized_keys`). Make sure to make a user for the host VM as well
+  - The SSH private key must be specified in `INVESTIGATOR_SSH_KEY_PATH` of `.env.secret`
+  - Note that LLM investigations take up some time (around 2 minutes). They are triggered after the first target down event
 
 ## Deployment
 
@@ -50,24 +57,24 @@ git clone https://github.com/notwindstone/se-toolkit-hackathon
 cd se-toolkit-hackathon
 ```
 
-Create `.env.secret` with the contents from `.env.example`, and then fill the values:
+Create `.env.secret` with the contents from `.env.secret.example`, and then fill the values (or replace them):
 
 ```env
 # Telegram
-TELEGRAM_BOT_TOKEN=your_token_here
-ADMIN_CHAT_ID=your_telegram_user_id_here
+TELEGRAM_BOT_TOKEN=
+ADMIN_CHAT_ID=1511972077
 
 # Qwen API
-QWEN_API_KEY=for_investigating_the_vm_problems
-QWEN_API_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
-QWEN_MODEL=qwen-plus
+QWEN_API_KEY=my-secret-qwen-key
+QWEN_API_BASE_URL=http://10.93.26.8:42005/v1
+QWEN_MODEL=coder-model
 
 # AI investigator over SSH
 INVESTIGATOR_ENABLED=true
-INVESTIGATOR_SSH_USER=ubuntu
-INVESTIGATOR_SSH_HOST=10.0.0.12
+INVESTIGATOR_SSH_USER=windstone
+INVESTIGATOR_SSH_HOST=
 INVESTIGATOR_SSH_PORT=22
-INVESTIGATOR_SSH_KEY_PATH=/root/.ssh/id_rsa
+INVESTIGATOR_SSH_KEY_PATH=~/.ssh/id_rsa
 INVESTIGATOR_COOLDOWN_SECONDS=900
 INVESTIGATOR_COMMAND_TIMEOUT_MS=20000
 
@@ -75,7 +82,7 @@ INVESTIGATOR_COMMAND_TIMEOUT_MS=20000
 PORT=3000
 
 # Database
-DATABASE_PATH=./chesed.db
+DATABASE_PATH=/data/chesed.db
 ```
 
 Build and run
