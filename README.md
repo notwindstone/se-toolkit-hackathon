@@ -14,7 +14,7 @@ Screenshots will be here...
 
 ### End users
 
-Me, homelab enthusiasts, developers, and users who host services on Virtual Machines (VM)
+Me, homelab enthusiasts, developers, and regular users who host services on Virtual Machines (VM)
 
 ### Problem
 
