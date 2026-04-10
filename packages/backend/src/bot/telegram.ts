@@ -403,6 +403,26 @@ export async function notifyDown(target: Target, error: string): Promise<void> {
   }
 }
 
+export async function notifyInvestigation(target: Target, report: string): Promise<void> {
+  if (!botInstance || !adminChatId) {
+    return;
+  }
+
+  const compactReport = report.length > 3_500
+    ? `${report.slice(0, 3_500)}\n\n(Report truncated)`
+    : report;
+
+  const message = "🤖 Investigation report\n\n" +
+    `Target: ${target.name}\n\n` +
+    compactReport;
+
+  try {
+    await botInstance.api.sendMessage(adminChatId, message);
+  } catch (err) {
+    log.error("BOT | Failed to send investigation report:", err);
+  }
+}
+
 export async function notifyUp(target: Target): Promise<void> {
   if (!botInstance || !adminChatId) {
     return;

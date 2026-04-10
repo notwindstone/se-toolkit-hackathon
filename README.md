@@ -30,9 +30,9 @@ This project will monitor the health of services via scheduled checks. It will b
 
 - A scheduled job that checks whether the server and its services are responding.
 - A Telegram bot that will notify the user in case if any service is down.
+- An incident investigator that SSH-es into the VM, gathers diagnostics, and asks AI for a root-cause summary.
 - That Telegram bot will also be able to show simple metrics and data (e.g., uptime).
 - A web dashboard that graphically represents the data.
-- An LLM model that can SSH into the VM by using a publickey and investigate the problem.
 
 ## Usage
 
@@ -59,6 +59,17 @@ ADMIN_CHAT_ID=your_telegram_user_id_here
 
 # Qwen API
 QWEN_API_KEY=for_investigating_the_vm_problems
+QWEN_API_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+QWEN_MODEL=qwen-plus
+
+# AI investigator over SSH
+INVESTIGATOR_ENABLED=true
+INVESTIGATOR_SSH_USER=ubuntu
+INVESTIGATOR_SSH_HOST=10.0.0.12
+INVESTIGATOR_SSH_PORT=22
+INVESTIGATOR_SSH_KEY_PATH=/root/.ssh/id_rsa
+INVESTIGATOR_COOLDOWN_SECONDS=900
+INVESTIGATOR_COMMAND_TIMEOUT_MS=20000
 
 # Server
 PORT=3000

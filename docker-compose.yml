@@ -11,6 +11,7 @@ services:
       - DATABASE_PATH=/data/chesed.db
     volumes:
       - yesod-data:/data
+      - ~/.ssh:/root/.ssh:ro
     ports:
       - "3000:3000"
     restart: unless-stopped
