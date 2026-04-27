@@ -43,8 +43,11 @@ async function loadEnvFromFile(): Promise<void> {
 
 await loadEnvFromFile();
 
-// Track previous status per target to avoid spam
-const previousStatus = new Map<number, "up" | "down">();
+const DOWN_NOTIFICATION_THRESHOLD = 3;
+// Track consecutive down checks per target.
+const consecutiveDownChecks = new Map<number, number>();
+// Track whether a down alert was already sent for a target.
+const alertedDownTargets = new Set<number>();
 
 // Load env
 const PORT = Number(process.env.PORT ?? 3000);
@@ -56,26 +59,37 @@ const bot = initBot(process.env.TELEGRAM_BOT_TOKEN, adminUserId, notificationCha
 
 // Setup check callback for notifications
 setOnCheckCallback((target: Target, result: CheckResult) => {
-  const prev = previousStatus.get(target.id);
   const current = result.status;
 
-  if (prev !== "down" && current === "down") {
-    notifyDown(target, result.error ?? "Unknown error");
-    void investigateFailure(target, result)
-      .then((report) => {
-        if (report) {
-          return notifyInvestigation(target, report);
-        }
-      })
-      .catch((err) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        log.error(`INVESTIGATOR | Unhandled error for ${target.name}: ${errorMessage}`);
-      });
-  } else if (prev === "down" && current === "up") {
-    notifyUp(target);
+  if (current === "down") {
+    const downCount = (consecutiveDownChecks.get(target.id) ?? 0) + 1;
+
+    consecutiveDownChecks.set(target.id, downCount);
+
+    if (downCount >= DOWN_NOTIFICATION_THRESHOLD && !alertedDownTargets.has(target.id)) {
+      alertedDownTargets.add(target.id);
+      notifyDown(target, result.error ?? "Unknown error");
+      void investigateFailure(target, result)
+        .then((report) => {
+          if (report) {
+            return notifyInvestigation(target, report);
+          }
+        })
+        .catch((err) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          log.error(`INVESTIGATOR | Unhandled error for ${target.name}: ${errorMessage}`);
+        });
+    }
+
+    return;
   }
 
-  previousStatus.set(target.id, current);
+  consecutiveDownChecks.set(target.id, 0);
+
+  if (alertedDownTargets.has(target.id)) {
+    alertedDownTargets.delete(target.id);
+    notifyUp(target);
+  }
 });
 
 // Build Elysia app
