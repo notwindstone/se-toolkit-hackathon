@@ -32,7 +32,7 @@ This project will monitor the health of services via scheduled checks. It will b
 ## Features
 
 - A scheduled job that checks whether the server and its services are responding.
-- A Telegram bot that will notify the user in case if any service is down.
+- A Telegram bot that can notify both the admin user and a Telegram group chat when any service is down.
 - An incident investigator that SSH-es into the VM, gathers diagnostics, and asks AI for a root-cause summary.
 - That Telegram bot will also be able to show simple metrics and data (e.g., uptime).
 - A web dashboard that graphically represents the data.
@@ -41,6 +41,7 @@ This project will monitor the health of services via scheduled checks. It will b
 
 - Send a message with the command `/start` in the [Telegram Bot](https://t.me/firefox_chan_bot#)
   - You can add targets there
+  - In group chats, bot commands are restricted to Telegram admins
 - Visit the [Web Dashboard](http://10.93.26.8:4173/)
 - For LLM investigations, add the SSH public key of the host VM to the target VM (in `authorized_keys`). Make sure to make a user for the host VM as well
   - The SSH private key must be specified in `INVESTIGATOR_SSH_KEY_PATH` of `.env.secret`
@@ -62,7 +63,10 @@ Create `.env.secret` with the contents from `.env.secret.example`, and then fill
 ```env
 # Telegram
 TELEGRAM_BOT_TOKEN=
-ADMIN_CHAT_ID=1511972077
+ADMIN_USER_ID=1511972077
+NOTIFICATION_CHAT_ID=-1001234567890
+# Legacy fallback (optional): if ADMIN_USER_ID is unset, ADMIN_CHAT_ID is used instead
+# ADMIN_CHAT_ID=1511972077
 
 # Qwen API
 QWEN_API_KEY=my-secret-qwen-key

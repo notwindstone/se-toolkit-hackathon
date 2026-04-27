@@ -48,9 +48,11 @@ const previousStatus = new Map<number, "up" | "down">();
 
 // Load env
 const PORT = Number(process.env.PORT ?? 3000);
+const adminUserId = process.env.ADMIN_USER_ID ?? process.env.ADMIN_CHAT_ID;
+const notificationChatId = process.env.NOTIFICATION_CHAT_ID;
 
 // Init bot (if configured)
-const bot = initBot(process.env.TELEGRAM_BOT_TOKEN, process.env.ADMIN_CHAT_ID);
+const bot = initBot(process.env.TELEGRAM_BOT_TOKEN, adminUserId, notificationChatId);
 
 // Setup check callback for notifications
 setOnCheckCallback((target: Target, result: CheckResult) => {
